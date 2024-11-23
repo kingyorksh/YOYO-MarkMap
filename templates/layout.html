@@ -75,7 +75,7 @@
             top: 20px;
             left: -240px;
             width: 250px; /* Ancho ligeramente menor */
-            background-color: rgba(220, 20, 60, 0.664);
+            background-color: rgba(255, 255, 255, 0.466);
             color: white;
             padding: 15px;
             overflow-y: auto;
@@ -166,12 +166,30 @@
                 overflow-y: auto;
             }
         }
-      
+        #u .nav-link {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999; /* Esto asegura que esté por encima de otros elementos */
+            text-decoration: none;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            color: #333;
+        }
+
+        #u {
+            position: relative;
+        }
+
+        #u .nav-link:hover {
+            background-color: #e9ecef;
+        }
    
     </style>
     
 </head>
 <body>
-    {% block body %}{% endblock %}
+    {% block body %} {% endblock %}
 </body>
 </html>

@@ -1,0 +1,25 @@
+<!-- templates/datos.html -->
+{% extends "base.html" %}
+{% block title %}ELIMINAR MARCADOR{% endblock %}
+{% block content %}
+    <h2>Área Protegida - Solo Usuarios Autenticados</h2>
+    
+    <p><strong>Bienvenido {{ current_user.username }}! </strong></p>
+    <p>Esta página solo es visible para usuarios que han iniciado sesión.</p>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">AQUI SE MOSTRARAN LOS MARCADORES </h5>
+            <form>
+                <div class="mb-3">
+                    <label for="dato1" class="form-label">Dato 1</label>
+                    <input type="text" class="form-control" id="dato1" required>
+                </div>
+                <div class="mb-3">
+                    <label for="dato2" class="form-label">Dato 2</label>
+                    <input type="text" class="form-control" id="dato2">
+                </div>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

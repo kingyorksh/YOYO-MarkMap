@@ -1,10 +1,11 @@
+<!-- templates/register.html -->
 {% extends "base.html" %}
-{% block title %}Iniciar Sesión{% endblock %}
+{% block title %}Registro{% endblock %}
 {% block content %}
     <div class="row">
-        
         <div class="col-md-6 offset-md-3">
-            <h2>Iniciar Sesión</h2>
+            {% if current_user.is_authenticated %}
+            <h2>Registro de un nuevo usuario</h2>
             <form method="POST">
                 <div class="mb-3">
                     <label for="username" class="form-label">Usuario</label>
@@ -14,8 +15,11 @@
                     <label for="password" class="form-label">Contraseña</label>
                     <input type="password" class="form-control" id="password" name="password" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                <button type="submit" class="btn btn-primary">Registrarse</button>
             </form>
+            {% else %}
+                    <p>Inicies sesion para registrar nuevos usuarios. <a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a></p>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

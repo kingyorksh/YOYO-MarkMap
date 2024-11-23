@@ -7,28 +7,45 @@
     
 {% endblock %}
 {% block body %}
-
-    <!-- FORMULARIO PARA QUE SOLO LO VEA EL ADMIN-->
-    <div class="marker-form">
-        <h3 class="popup-menu"">AGREGAR UN NUEVO REFUGIO</h3>
-        <form id="markerForm">
-            <input type="text" id="latitude" placeholder="Latitud" required readonly> 
-            <input type="text" id="longitude" placeholder="Longitud" required readonly>
-            <input type="text" id="title" placeholder="Título" required>
-            <input type="text" class="popup" id="description" placeholder="Descripción">
-            
-            <button type="submit">Agregar Marcador</button>
-            
-        </form>
+    
+    <div class="navbar-nav">
+        {% if current_user.is_authenticated %}
+            <div id="u">
+                <a class="nav-link" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+            </div>
+        {% else %}
+            <div id="u">
+                <a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a>
+                
+            </div>
+        {% endif %}
     </div>
-
+        
+            <!-- FORMULARIO PARA QUE SOLO LO VEA EL ADMIN-->
+                <div class="marker-form">
+                    {% if current_user.is_authenticated %}
+                    <h3 class="popup-menu"">AGREGAR UN NUEVO REFUGIO</h3>
+                    {% endif %}
+                    <form id="markerForm">
+                        
+                        <input type="text" id="latitude" placeholder="Latitud" required readonly> 
+                        <input type="text" id="longitude" placeholder="Longitud" required readonly>
+                        {% if current_user.is_authenticated %}  <!--SE MUEVE PARA DAR PRIVILEGIOS-->
+                        <input type="text" id="title" placeholder="Título" required>
+                        <input type="text" class="popup" id="description" placeholder="Descripción">
+                        <button type="submit">Agregar Marcador</button>
+                        {% endif %}
+                    </form>
+                </div>
+                
+                <div id="sidebar">
+                    {% if current_user.is_authenticated %}
+                        <a class="nav-link" href="{{ url_for('datos') }}"><h3>Eliminar Marcador 🗑️</h3></a>
+                        <ul id="markerList"></ul>
+                    {% endif %}
+                </div>
+    <!--Carga el mapa-->
     <div id="map"> </div>
-    <div id="sidebar">
-        <h3>Eliminar Marcador 🗑️</h3>
-        <!---  AGREGAR PAGUINA QUE DIRIJE A LA BASE DE DATOS -->
-        <ul id="markerList"></ul>
-    </div>
-
    <!--CODIGO--> 
     <script>
         

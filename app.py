@@ -1,6 +1,8 @@
 # app.py
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import models
 import os
@@ -18,6 +20,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///mar
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAPBOX_TOKEN'] = os.getenv('MAPBOX_TOKEN')
 
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
 # Inicializar SQLAlchemy
 db = SQLAlchemy(app)
@@ -29,6 +33,21 @@ class Marker(db.Model):
     longitude = db.Column(db.Float, nullable=False)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
+# Modelo de Usuario----------------------------------
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(120), nullable=False)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+@login_manager.user_loader #--------------------------
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Rutas
 @app.route('/')
@@ -86,7 +105,53 @@ def delete_marker(marker_id):
         return jsonify({'success': True}), 200
     else:
         return jsonify({'error': 'Marker not found'}), 404
+#*****************************LOGIN**************
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            flash('¡Inicio de sesión exitoso!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Usuario o contraseña incorrectos', 'error')
+    
+    return render_template('login.html')
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if User.query.filter_by(username=username).first():
+            flash('El nombre de usuario ya existe', 'error')
+            return redirect(url_for('register'))
+        
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        logout_user()
+        flash('¡Registro exitoso! Por favor inicie sesión', 'success')
 
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/datos')
+@login_required
+def datos():
+    return render_template('datos.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
 
 # Crear la base de datos
 with app.app_context():
