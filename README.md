@@ -1,3 +1,0 @@
-# YoYo
-Proyecto de pasantias
-
