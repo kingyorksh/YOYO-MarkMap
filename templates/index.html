@@ -1,0 +1,226 @@
+
+{% extends "layout.html" %}
+
+{% block title %}MAPA-MARK YOYO{% endblock %}
+
+{% block head %}
+    
+{% endblock %}
+{% block body %}
+    
+    <div class="navbar-nav">
+        {% if current_user.is_authenticated %}
+            <div id="u">
+                <a class="nav-link" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+            </div>
+        {% else %}
+            <div id="u">
+                <a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a>
+                
+            </div>
+        {% endif %}
+    </div>
+        
+            <!-- FORMULARIO PARA QUE SOLO LO VEA EL ADMIN-->
+                <div class="marker-form">
+                    {% if current_user.is_authenticated %}
+                    <h3 class="popup-menu"">AGREGAR UN NUEVO REFUGIO</h3>
+                    {% endif %}
+                    <form id="markerForm">
+                        
+                        <input type="text" id="latitude" placeholder="Latitud" required readonly> 
+                        <input type="text" id="longitude" placeholder="Longitud" required readonly>
+                        {% if current_user.is_authenticated %}  <!--SE MUEVE PARA DAR PRIVILEGIOS-->
+                        <input type="text" id="title" placeholder="Título" required>
+                        <input type="text" class="popup" id="description" placeholder="Descripción">
+                        <button type="submit">Agregar Marcador</button>
+                        {% endif %}
+                    </form>
+                </div>
+                
+                <div id="sidebar">
+                    {% if current_user.is_authenticated %}
+                        <a class="nav-link" href="{{ url_for('datos') }}"><h3>Eliminar Marcador 🗑️</h3></a>
+                        <ul id="markerList"></ul>
+                    {% endif %}
+                </div>
+    <!--Carga el mapa-->
+    <div id="map"> </div>
+   <!--CODIGO--> 
+    <script>
+        
+        mapboxgl.accessToken = '{{ mapbox_token }}';''
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [-80.4544500, -1.0545800], // Coordenadas iniciales del mapa
+            zoom: 13.5
+        });
+        //-------------------------------------------------------------------------------
+        //SIDE BAR
+        // Agregar clase 'active' al sidebar en dispositivos táctiles
+        document.querySelector('#sidebar').addEventListener('touchstart', function() {
+            this.classList.toggle('active');
+        });
+        // FORMULARIO EFECTO
+        document.addEventListener('DOMContentLoaded', function() {
+        const markerForm = document.querySelector('.marker-form');
+        let isDragging = false;
+        let startY, startTop;
+
+        function handleTouchStart(e) {
+            isDragging = true;
+            startY = e.touches[0].clientY;
+            startTop = parseInt(window.getComputedStyle(markerForm).top);
+            markerForm.style.transition = 'none';
+        }
+
+        function handleTouchMove(e) {
+            if (!isDragging) return;
+            
+            const deltaY = e.touches[0].clientY - startY;
+            const newTop = startTop + deltaY;
+            
+            // Limitar el movimiento entre 20% y 80% de la altura de la ventana
+            const minTop = window.innerHeight * 0.2;
+            const maxTop = window.innerHeight * 0.8;
+            
+            if (newTop >= minTop && newTop <= maxTop) {
+                markerForm.style.top = `${newTop}px`;
+            }
+        }
+
+        function handleTouchEnd() {
+            isDragging = false;
+            markerForm.style.transition = 'top 0.3s ease';
+            
+            // Snap a posiciones predefinidas
+            const currentTop = parseInt(window.getComputedStyle(markerForm).top);
+            const windowHeight = window.innerHeight;
+            
+            if (currentTop < windowHeight * 0.5) {
+                markerForm.style.top = `${windowHeight * 0.3}px`; // Snap arriba
+            } else {
+                markerForm.style.top = `${windowHeight * 0.7}px`; // Snap abajo
+            }
+        }
+
+        // Agregar los event listeners
+        markerForm.addEventListener('touchstart', handleTouchStart);
+        markerForm.addEventListener('touchmove', handleTouchMove);
+        markerForm.addEventListener('touchend', handleTouchEnd);
+    });
+        //--------------------------------------------------------------------------------
+        const latitudeInput = document.getElementById('latitude');
+        const longitudeInput = document.getElementById('longitude');
+        const markerForm = document.getElementById('markerForm');
+        let tempMarker = null; // variable temporal
+        let IDmarkers = new Map(); // Para almacenar los marcadores y sus IDs
+        
+        // evento click en el formalarios
+        map.on('click', (e) => {
+            // Actualizar los campos del formulario
+            latitudeInput.value = e.lngLat.lat.toFixed(6);
+            longitudeInput.value = e.lngLat.lng.toFixed(6);
+
+            // Eliminar el marcador temporal anterior si existe
+            if (tempMarker) {
+                tempMarker.remove();
+            }
+
+            // Crear nuevo marcador temporal
+            tempMarker = new mapboxgl.Marker({
+                color: "yellow" // Color rojo para el marcador temporal
+            })
+                .setLngLat([e.lngLat.lng, e.lngLat.lat])
+                .addTo(map);
+        });
+        //--------
+        
+        // Manejo del envío del formulario
+        markerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const markerData = {
+                latitude: parseFloat(latitudeInput.value),
+                longitude: parseFloat(longitudeInput.value),
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value
+            };
+
+            fetch('/api/markers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(markerData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Eliminar el marcador temporal
+                if (tempMarker) {
+                    tempMarker.remove();
+                }
+                // Agregar el marcador permanente
+                addMarkerToMap(markerData);
+                // Limpiar el formulario
+                markerForm.reset();
+                // Limpiar las coordenadas
+                latitudeInput.value = '';
+                longitudeInput.value = '';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al guardar el marcador');
+            });
+        });
+        
+        //----------------------------------------------------------------
+        // Declarar una sola vez los marcadores pasados desde el servidor
+       
+        let markers = {{ markers | tojson }};
+        
+        //----------------------------------------------------------------
+        /*
+        const marker = new mapboxgl.Marker({color: 'Red'})
+            .setLngLat([-80.4544500, -1.0545800]) 
+            .addTo(map);
+        const popup = new mapboxgl.Popup({ offset: 25 }) // Opcional: ajustar la posición
+            .setText('CENTRO DE MANABI');
+        // Asociar el popup al marcador
+        marker.setPopup(popup);*/
+
+        // ESTA ES SOLO PARA AGREGAR MARCADORES PERMANENTES DESDE EL CONTEXT DB del APP.PY
+        /*
+        markers.forEach(marker => {
+            const popup = new mapboxgl.Popup().setText(marker.title + ": " + marker.description);
+            new mapboxgl.Marker({ color: 'green' })
+                .setLngLat([marker.longitude, marker.latitude])
+                .setPopup(popup)
+                .addTo(map);
+                
+        });*/
+
+        // Cargar marcadores existentes desde la API
+        fetch('/api/markers')
+            .then(response => response.json())
+            .then(fetchedMarkers => { // Renombrar esta variable para evitar conflictos
+                fetchedMarkers.forEach(addMarkerToMap);
+            });
+
+        function addMarkerToMap(markerData) {
+            new mapboxgl.Marker()
+                .setLngLat([markerData.longitude, markerData.latitude])
+                .setPopup(new mapboxgl.Popup().setHTML(
+                    `<h3><strong>${markerData.title}</strong></h3><p>${markerData.description}</p>`
+                    
+                ))
+                .addTo(map);
+        }
+
+        
+    </script>
+    
+
+
+{% endblock %}

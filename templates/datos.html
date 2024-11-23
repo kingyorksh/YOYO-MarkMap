@@ -1,0 +1,93 @@
+<!-- templates/datos.html -->
+{% extends "base.html" %}
+{% block title %}ELIMINAR MARCADOR{% endblock %}
+{% block content %}
+    <h2>Área Protegida - Solo Usuarios Autenticados</h2>
+    
+    <p><strong>Bienvenido {{ current_user.username }}! </strong></p>
+    <p>Esta página solo es visible para usuarios que han iniciado sesión.</p>
+    <div class="card">
+        <div class="card-body">
+            <div class="container">
+                <h2 class="mb-4">Gestión de Marcadores</h2>
+                
+                <!-- Buscador -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <form class="d-flex" method="GET">
+                            <input class="form-control me-2" type="search" 
+                                   placeholder="Buscar por título o descripción" 
+                                   name="search" 
+                                   value="{{ request.args.get('search', '') }}">
+                            <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                        </form>
+                    </div>
+                </div>
+            
+                <!-- Tabla de Marcadores -->
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Descripción</th>
+                                <th>Latitud</th>
+                                <th>Longitud</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for marker in markers %}
+                            <tr id="marker-row-{{ marker.id }}">
+                                <td>{{ marker.title }}</td>
+                                <td>{{ marker.description }}</td>
+                                <td>{{ marker.latitude }}</td>
+                                <td>{{ marker.longitude }}</td>
+                                <td>
+                                    <button class="btn btn-danger btn-sm delete-marker" 
+                                            data-marker-id="{{ marker.id }}"
+                                            onclick="deleteMarker({{ marker.id }})">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Agregar FontAwesome para los iconos -->
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+            
+            <!-- JavaScript para manejar la eliminación -->
+            <script>
+            function deleteMarker(markerId) {
+                if (confirm('¿Estás seguro de que deseas eliminar este marcador?')) {
+                    fetch(`/delete_marker/${markerId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Eliminar la fila de la tabla
+                            document.getElementById(`marker-row-${markerId}`).remove();
+                            // Mostrar mensaje de éxito
+                            alert('Marcador eliminado correctamente');
+                        } else {
+                            alert('Error al eliminar el marcador');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al eliminar el marcador');
+                    });
+                }
+            }
+            </script>
+        </div>
+    </div>
+{% endblock %}
